@@ -2,6 +2,34 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { indexDocument, lookup, directRelations } = require('../signals');
 
+test('a guard, a mux selector, and a data operand have distinct reversible links', () => {
+  const source = `module m(input wire clk, en, d, output reg q);
+    always @(posedge clk) begin
+      if (en) q <= d;
+      q <= en ? en : d;
+      case (en)
+        0: q <= d;
+      endcase
+    end
+    endmodule`;
+  const index = indexDocument(source);
+  const from = offset => directRelations(index, lookup(index, offset), true);
+  const enable = from(source.indexOf('en,'));
+  assert.deepEqual(enable.map(r => [r.direction, r.detail]), [
+    ['受控写入', 'if · en · q <= d'],
+    ['受控选值', 'q <= en ? en : d'],
+    ['下游', 'q <= en ? en : d'],
+    ['受控写入', 'case (en) → 0 · q <= d']
+  ]);
+  const upstream = from(source.indexOf('reg q') + 4).filter(r => r.token.value === 'en');
+  assert.deepEqual(upstream.map(r => [r.direction, r.token.start]), [
+    ['控制来源', source.indexOf('if (en)') + 4],
+    ['选择条件', source.indexOf('en ?')],
+    ['上游', source.indexOf('en :')],
+    ['控制来源', source.indexOf('case (en)') + 6]
+  ]);
+});
+
 test('clocked data dependencies keep their assignment site and exclude branch predicates', () => {
   const source = `module m(input wire clk, rst, a, b, output reg q);
     always_ff @(posedge clk or negedge rst)

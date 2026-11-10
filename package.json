@@ -2,18 +2,20 @@
   "name": "verilog-signal-trace",
   "displayName": "Verilog Signal Trace",
   "description": "定位信号声明，追踪模块内组合赋值和时序写入的直接上下游。",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "local-rtl",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
   "main": "./extension.js",
   "contributes": {
     "commands": [
-      { "command": "verilog-signal-trace.directRelations", "title": "Verilog：查看直接上下游", "enablement": "editorLangId == verilog || editorLangId == systemverilog" }
+      { "command": "verilog-signal-trace.directRelations", "title": "Verilog：查看直接上下游", "enablement": "editorLangId == verilog || editorLangId == systemverilog" },
+      { "command": "verilog-signal-trace.tracePath", "title": "Verilog：多级追踪信号", "enablement": "editorLangId == verilog || editorLangId == systemverilog" }
     ],
     "menus": {
       "editor/context": [
-        { "command": "verilog-signal-trace.directRelations", "when": "editorLangId == verilog || editorLangId == systemverilog", "group": "navigation@5" }
+        { "command": "verilog-signal-trace.directRelations", "when": "editorLangId == verilog || editorLangId == systemverilog", "group": "navigation@5" },
+        { "command": "verilog-signal-trace.tracePath", "when": "editorLangId == verilog || editorLangId == systemverilog", "group": "navigation@6" }
       ]
     },
     "languages": [

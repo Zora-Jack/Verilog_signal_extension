@@ -83,7 +83,7 @@ function readClockedBlock(source, tokens, start, mod) {
     const first = tokens[start].start;
     const last = tokens[end - 1].end;
     const value = source.slice(first, last);
-    return { value, start: first, end: last, label: prefix + value.replace(/\s+/g, ' ') };
+    return { value, start: first, end: last, operands: tokens.slice(start, end), label: prefix + value.replace(/\s+/g, ' ') };
   }
 
   function statement(i, guards) {
@@ -110,6 +110,7 @@ function readClockedBlock(source, tokens, start, mod) {
       const close = balancedEnd(tokens, i + 1);
       if (at(close - 1) !== ')') return close;
       const selector = source.slice(tokens[i].start, tokens[close - 1].end).replace(/\s+/g, ' ');
+      const selectorTokens = tokens.slice(i + 2, close - 1);
       i = close;
       while (at(i) && at(i) !== 'endcase' && at(i) !== 'endmodule') {
         const first = i;
@@ -127,6 +128,7 @@ function readClockedBlock(source, tokens, start, mod) {
         if (at(i) === 'endcase' || at(i) === 'endmodule') break;
         if (first === i || !at(i)) return i + 1;
         const branch = condition(first, i, selector + ' → ');
+        branch.operands = selectorTokens.concat(tokens[close - 1], branch.operands);
         i = statement(at(i) === ':' ? i + 1 : i, [...guards, branch]);
       }
       return i + 1;
@@ -148,7 +150,23 @@ function readClockedBlock(source, tokens, start, mod) {
   statement(body, []);
 }
 
-function directRelations(index, hit) {
+// At each nesting level a ternary predicate starts at the current subexpression.
+function ternarySelectors(tokens, start, end) {
+  const ranges = [];
+  const starts = [start];
+  for (let i = start; i < end; i++) {
+    const value = tokens[i].value;
+    if (Object.hasOwn(paired, value)) starts.push(i + 1);
+    else if ([')', ']', '}'].includes(value)) starts.pop();
+    else if (['?', ':', ','].includes(value)) {
+      if (value === '?') ranges.push([starts.at(-1), i]);
+      starts[starts.length - 1] = i + 1;
+    }
+  }
+  return ranges;
+}
+
+function directRelations(index, hit, expandControls = false) {
   const mod = index.modules.find(m => m.start <= hit.start && hit.start < m.end);
   const tokens = index.tokens;
   const signal = index.source.slice(hit.start, hit.end);
@@ -161,18 +179,37 @@ function directRelations(index, hit) {
   for (const { name, rhs, end, edge, guards = [] } of mod.assignments) {
     if (!moduleSignal(name)) continue;
     const seen = new Set();
+    const selectors = expandControls ? ternarySelectors(tokens, rhs, end) : [];
     const detail = index.source.slice(name.start, tokens[end - 1].end).replace(/\s+/g, ' ');
     for (let i = rhs; i < end; i++) {
       const t = tokens[i];
-      if (!moduleSignal(t) || seen.has(t.value)) continue;
+      if (!moduleSignal(t)) continue;
       if (tokens[i - 1]?.value === '.' || ['.', '('].includes(tokens[i + 1]?.value)) continue;
-      seen.add(t.value);
+      const selector = selectors.find(([start, stop]) => start <= i && i < stop);
+      const key = (selector ? 'select:' : 'data:') + t.value;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (selector) {
+        if (name.value === signal) results.push({ direction: '选择条件', token: t, detail, edge, writeOffset: name.start });
+        if (t.value === signal) results.push({ direction: '受控选值', token: name, detail, edge, guardOffset: t.start });
+        continue;
+      }
       if (name.value === signal) results.push({ direction: '上游', token: t, detail, edge });
       if (t.value === signal) results.push({ direction: '下游', token: name, detail, edge });
     }
-    if (name.value === signal) {
-      for (const guard of guards) {
+    for (const guard of guards) {
+      if (!expandControls && name.value === signal) {
         results.push({ direction: '写入条件', token: guard, detail, edge, writeOffset: name.start });
+      }
+      if (!expandControls) continue;
+      const controls = new Set();
+      for (const [i, operand] of guard.operands.entries()) {
+        if (!moduleSignal(operand) || controls.has(operand.value)) continue;
+        if (guard.operands[i - 1]?.value === '.' || ['.', '('].includes(guard.operands[i + 1]?.value)) continue;
+        controls.add(operand.value);
+        const evidence = guard.label + ' · ' + detail;
+        if (name.value === signal) results.push({ direction: '控制来源', token: operand, detail: evidence, edge, writeOffset: name.start });
+        if (operand.value === signal) results.push({ direction: '受控写入', token: name, detail: evidence, edge, guardOffset: guard.start });
       }
     }
   }
