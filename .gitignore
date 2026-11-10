@@ -1,1 +1,10 @@
 *.vsix
+node_modules/
+coverage/
+.vscode-test*/
+*.log
+.env
+.env.*
+!.env.example
+.vscode/*
+!.vscode/launch.json
