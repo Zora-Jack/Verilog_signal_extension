@@ -282,4 +282,4 @@ function lookup({ modules, tokens }, offset) {
   if (declaration) return { module: mod.name, declaration, start: t.start, end: t.end };
 }
 
-module.exports = { indexDocument, lookup, directRelations };
+module.exports = { indexDocument, lookup, directRelations, balancedEnd };

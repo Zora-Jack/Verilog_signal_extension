@@ -1,8 +1,8 @@
 {
   "name": "verilog-signal-trace",
   "displayName": "Verilog Signal Trace",
-  "description": "定位信号声明，追踪模块内组合赋值和时序写入的直接上下游。",
-  "version": "0.5.0",
+  "description": "定位信号声明，追踪模块内数据、控制依赖和跨实例端口连接。",
+  "version": "0.6.0",
   "publisher": "local-rtl",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],

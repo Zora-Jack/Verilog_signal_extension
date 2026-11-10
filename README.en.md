@@ -13,8 +13,9 @@ Verilog Signal Trace is a VS Code extension for reading RTL. It grew out of thre
 | `v0.3.0` | Trace data in both directions through nonblocking writes in edge-triggered `always` and `always_ff` blocks. Each result shows the event control and assignment line. |
 | `v0.4.0` | Inspect data sources and enclosing `if/else` and `case/casez/casex` branches separately. Each guard identifies its write site and jumps to the predicate or branch label. |
 | `v0.5.0` | Follow data and control dependencies across multiple steps within a module and return to previous source locations. |
+| `v0.6.0` | Follow named port connections across files and instances while preserving the instance context and previous source locations. |
 
-The extension reads the current editor buffer and traces continuous assignments such as `wire x = expr;` and `assign x = expr;`. An empty list means it found no dependencies in the constructs it supports. Clocked tracing accepts rising and falling edges on simple signals, including edge lists. Macro expansion, `generate` constructs, and connections across instances are outside the current scope.
+The extension reads the current editor buffer and traces continuous assignments such as `wire x = expr;` and `assign x = expr;`. An empty list means it found no dependencies in the constructs it supports. Clocked tracing accepts rising and falling edges on simple signals, including edge lists. Macro expansion and `generate` constructs are outside the current scope.
 
 ## Try it with take_data
 
@@ -41,6 +42,8 @@ Open the extension folder in VS Code 1.85 or later and press `F5` to launch the 
 
 [signals.js](signals.js) indexes source text and resolves dependencies. [extension.js](extension.js) provides hover information, navigation, and the results list. Write Git commit subjects and bodies in English.
 
-## Roadmap
+## Cross-file tracing
 
-1. **Trace across files and module instances.** Follow a parent module’s port connection into the corresponding child instance. Preserve the instance path when a module is instantiated more than once so each result leads to the correct connection in the source.
+Open the RTL folder for one design, such as the exp15 `myCPU` directory. Follow `inst_rdata_reg` to `inst_sram_rdata`, go up through `mycpu_top.u_bridge`, then descend into `u_mycpu_core` and `u_if_stage`. Starting inside a module lists its possible parent instances. After entering a particular instance, upward navigation follows that instance.
+
+Each multi-hop session scans .v, .vh, .sv and .svh files in the current workspace folder and uses the current text of open documents. Direct module instances with explicit named connections of the form `.port(signal)` support input, output and inout directions. Duplicate module definitions, positional connections, expressions, bit selects, generate constructs and macro expansion are outside this release.
