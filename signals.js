@@ -1,5 +1,5 @@
 // Token offsets use UTF-16, the same units as TextDocument.offsetAt().
-const tokenPattern = /\/\/[^\r\n]*|\/\*[\s\S]*?(?:\*\/|$)|"(?:\\[\s\S]|[^"\\])*(?:"|$)|\x60(?:define|include|ifdef|ifndef|elsif|else|endif|timescale|default_nettype)\b(?:\\\r?\n|[^\r\n])*|\\[^\s]+|\x60[\w$]+|[a-zA-Z_$][\w$]*|[^\s]/g;
+const tokenPattern = /\/\/[^\r\n]*|\/\*[\s\S]*?(?:\*\/|$)|"(?:\\[\s\S]|[^"\\])*(?:"|$)|\x60(?:define|include|ifdef|ifndef|elsif|else|endif|timescale|default_nettype)\b(?:\\\r?\n|[^\r\n])*|\\[^\s]+|\x60[\w$]+|(?:\d[\d_]*)?'[sS]?[bBoOdDhH][0-9a-fA-F_xXzZ?]+|[a-zA-Z_$][\w$]*|[^\s]/g;
 const identifier = /^(?:[a-zA-Z_][\w$]*|\\\S+)$/;
 const directions = new Set(['input', 'output', 'inout']);
 const types = new Set(['wire', 'reg', 'logic', 'tri']);
@@ -79,30 +79,55 @@ function readClockedBlock(source, tokens, start, mod) {
   if (!/^(?:posedge|negedge) [\w$]+(?: (?:or|,) (?:posedge|negedge) [\w$]+)*$/.test(events)) return;
   const edge = source.slice(tokens[start].start, tokens[body - 1].end).replace(/\s+/g, ' ');
 
-  function statement(i) {
+  function condition(start, end, prefix) {
+    const first = tokens[start].start;
+    const last = tokens[end - 1].end;
+    const value = source.slice(first, last);
+    return { value, start: first, end: last, label: prefix + value.replace(/\s+/g, ' ') };
+  }
+
+  function statement(i, guards) {
     const head = at(i);
     if (head === 'begin') {
       i += at(i + 1) === ':' ? 3 : 1;
-      while (at(i) && at(i) !== 'end' && at(i) !== 'endmodule') i = statement(i);
+      while (at(i) && at(i) !== 'end' && at(i) !== 'endmodule') i = statement(i, guards);
       return i + (at(i + 1) === ':' ? 3 : 1);
     }
-    if (['unique', 'unique0', 'priority'].includes(head)) return statement(i + 1);
-    if (['if', 'for', 'while', 'repeat'].includes(head) && at(i + 1) === '(') {
-      i = statement(balancedEnd(tokens, i + 1));
-      return head === 'if' && at(i) === 'else' ? statement(i + 1) : i;
+    if (['unique', 'unique0', 'priority'].includes(head)) return statement(i + 1, guards);
+    if (head === 'if' && at(i + 1) === '(') {
+      const end = balancedEnd(tokens, i + 1);
+      if (at(end - 1) !== ')' || end <= i + 3) return end;
+      const predicate = condition(i + 2, end - 1, 'if · ');
+      i = statement(end, [...guards, predicate]);
+      if (at(i) !== 'else') return i;
+      const otherwise = { ...predicate, label: 'else · 未进入 if (' + predicate.value.replace(/\s+/g, ' ') + ')' };
+      return statement(i + 1, [...guards, otherwise]);
+    }
+    if (['for', 'while', 'repeat'].includes(head) && at(i + 1) === '(') {
+      return statement(balancedEnd(tokens, i + 1), guards);
     }
     if (['case', 'casez', 'casex'].includes(head) && at(i + 1) === '(') {
-      i = balancedEnd(tokens, i + 1);
+      const close = balancedEnd(tokens, i + 1);
+      if (at(close - 1) !== ')') return close;
+      const selector = source.slice(tokens[i].start, tokens[close - 1].end).replace(/\s+/g, ' ');
+      i = close;
       while (at(i) && at(i) !== 'endcase' && at(i) !== 'endmodule') {
+        const first = i;
         if (at(i) === 'default') {
           i++;
         } else {
-          while (at(i) && ![':', 'endcase', 'endmodule'].includes(at(i))) {
+          let ternary = 0;
+          while (at(i) && !['endcase', 'endmodule'].includes(at(i))) {
+            if (at(i) === ':' && !ternary) break;
+            if (at(i) === '?') ternary++;
+            if (at(i) === ':') ternary--;
             i = Object.hasOwn(paired, at(i)) ? balancedEnd(tokens, i) : i + 1;
           }
         }
         if (at(i) === 'endcase' || at(i) === 'endmodule') break;
-        i = statement(at(i) === ':' ? i + 1 : i);
+        if (first === i || !at(i)) return i + 1;
+        const branch = condition(first, i, selector + ' → ');
+        i = statement(at(i) === ':' ? i + 1 : i, [...guards, branch]);
       }
       return i + 1;
     }
@@ -116,11 +141,11 @@ function readClockedBlock(source, tokens, start, mod) {
     if (identifier.test(head || '') && at(op) === '<' && at(op + 1) === '=' &&
         tokens[op].end === tokens[op + 1].start && rhs < end && at(end) === ';' &&
         !['#', '@'].includes(at(rhs))) {
-      mod.assignments.push({ name: tokens[i], rhs, end, edge });
+      mod.assignments.push({ name: tokens[i], rhs, end, edge, guards });
     }
     return end + 1;
   }
-  statement(body);
+  statement(body, []);
 }
 
 function directRelations(index, hit) {
@@ -133,17 +158,22 @@ function directRelations(index, hit) {
     return mod.signals.has(t.value) && !mod.scopes.some(s =>
       s.start <= t.start && t.start < s.end && s.signals.has(t.value));
   }
-  for (const { name, rhs, end, edge } of mod.assignments) {
+  for (const { name, rhs, end, edge, guards = [] } of mod.assignments) {
     if (!moduleSignal(name)) continue;
     const seen = new Set();
+    const detail = index.source.slice(name.start, tokens[end - 1].end).replace(/\s+/g, ' ');
     for (let i = rhs; i < end; i++) {
       const t = tokens[i];
       if (!moduleSignal(t) || seen.has(t.value)) continue;
       if (tokens[i - 1]?.value === '.' || ['.', '('].includes(tokens[i + 1]?.value)) continue;
       seen.add(t.value);
-      const detail = index.source.slice(name.start, tokens[end - 1].end).replace(/\s+/g, ' ');
       if (name.value === signal) results.push({ direction: '上游', token: t, detail, edge });
       if (t.value === signal) results.push({ direction: '下游', token: name, detail, edge });
+    }
+    if (name.value === signal) {
+      for (const guard of guards) {
+        results.push({ direction: '写入条件', token: guard, detail, edge, writeOffset: name.start });
+      }
     }
   }
   return results;

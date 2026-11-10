@@ -11,8 +11,9 @@ Verilog Signal Trace is a VS Code extension for reading RTL. It grew out of thre
 | `v0.1.0` | Hover over a signal to see its explicit declaration, module, and line number. Press `F12` to jump to the declaration. Verified with internal wires, registers with declared widths, module ports, and signals that share a name across modules in the same file. |
 | `v0.2.0` | Right-click a signal and choose **Verilog：查看直接上下游** (show direct dependencies) to trace one step upstream or downstream through continuous assignments in the current module. Each result shows the direction, signal name, line number, and assignment expression. Select it to jump to the relevant operand or assignment target. |
 | `v0.3.0` | Trace data in both directions through nonblocking writes in edge-triggered `always` and `always_ff` blocks. Each result shows the event control and assignment line. |
+| `v0.4.0` | Inspect data sources and enclosing `if/else` and `case/casez/casex` branches separately. Each guard identifies its write site and jumps to the predicate or branch label. |
 
-The extension reads the current editor buffer and traces continuous assignments such as `wire x = expr;` and `assign x = expr;`. An empty list means it found no dependencies in the constructs it supports. Clocked tracing accepts rising and falling edges on simple signals, including edge lists. Write conditions, macro expansion, `generate` constructs, and connections across instances are outside the current scope.
+The extension reads the current editor buffer and traces continuous assignments such as `wire x = expr;` and `assign x = expr;`. An empty list means it found no dependencies in the constructs it supports. Clocked tracing accepts rising and falling edges on simple signals, including edge lists. Macro expansion, `generate` constructs, and connections across instances are outside the current scope.
 
 ## Try it with take_data
 
@@ -39,6 +40,5 @@ Open the extension folder in VS Code 1.85 or later and press `F5` to launch the 
 
 ## Roadmap
 
-1. **Add control conditions to clocked writes.** Use `inst_rdata_reg` in exp15 as the first test case. Its data comes from `rdata`. The write depends on the `I_WAIT` state, the read-channel handshake, and the response ID. The register in turn drives `inst_sram_rdata`. Show the data source, write conditions, and active clock edge separately.
-2. **Follow multiple steps within a module.** Let the reader expand a result while keeping the assignments already visited. When a feedback path returns to a signal, mark that signal and stop expanding the cycle.
-3. **Trace across files and module instances.** Follow a parent module’s port connection into the corresponding child instance. Preserve the instance path when a module is instantiated more than once so each result leads to the correct connection in the source.
+1. **Follow multiple steps within a module.** Let the reader expand a result while keeping the assignments already visited. When a feedback path returns to a signal, mark that signal and stop expanding the cycle.
+2. **Trace across files and module instances.** Follow a parent module’s port connection into the corresponding child instance. Preserve the instance path when a module is instantiated more than once so each result leads to the correct connection in the source.

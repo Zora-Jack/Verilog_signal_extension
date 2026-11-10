@@ -33,14 +33,17 @@ function activate(context) {
         return;
       }
       const items = [];
-      for (const direction of ['上游', '下游']) {
+      for (const direction of ['上游', '写入条件', '下游']) {
         for (const r of relations.filter(r => r.direction === direction)) {
           const range = new vscode.Range(doc.positionAt(r.token.start), doc.positionAt(r.token.end));
-          items.push({ label: `${direction}  ${r.token.value}`, description: `${r.edge || "组合"} · 第 ${range.start.line + 1} 行`, detail: r.detail, range });
+          const role = direction === '上游' ? '上游数据' : direction;
+          const detail = r.writeOffset === undefined ? r.detail :
+            `第 ${doc.positionAt(r.writeOffset).line + 1} 行写入 · ${r.detail}`;
+          items.push({ label: `${role}  ${r.token.label || r.token.value}`, description: `${r.edge || "组合"} · 第 ${range.start.line + 1} 行`, detail, range });
         }
       }
       const picked = await vscode.window.showQuickPick(items, {
-        title: `${hit.module} · ${signal} 的直接上下游`, placeHolder: '选择一项，跳到对应的赋值语句'
+        title: `${hit.module} · ${signal} 的直接上下游`, placeHolder: '选择数据或写入条件，跳到源码'
       });
       if (!picked) return;
       if (doc.isClosed || doc.version !== version) {
