@@ -1,5 +1,7 @@
 # Verilog Signal Trace
 
+**简体中文** | [English](README.en.md)
+
 Verilog Signal Trace 是一个用于阅读 RTL 源码的 VS Code 扩展。开发这个插件的起点，是阅读 CPU 流水线和 AXI 转接桥时经常遇到的三个问题：一个内部信号在哪里声明，哪些值决定它，以及它又会影响哪些逻辑。插件从光标所在的信号出发，让每一条查到的关系都能跳回对应的 Verilog 语句。
 
 ## 当前进度
