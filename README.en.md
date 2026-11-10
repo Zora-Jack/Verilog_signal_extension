@@ -4,6 +4,12 @@
 
 Verilog Signal Trace is a VS Code extension for reading RTL. It grew out of three questions that come up when reading CPU pipelines and AXI bridges. Where is this signal declared? Which signals determine its value? Which logic depends on it? Start at a signal under the cursor and follow each result to the Verilog expression that establishes the dependency.
 
+## Install and try it
+
+Use VS Code 1.85 or later. To install a downloaded VSIX, run **Extensions: Install from VSIX...** in the Command Palette. Open the RTL folder for one design, right-click a declared signal, and select **Verilog：查看直接上下游** to see its immediate dependencies. The extension reads source text directly and requires no Ctags or simulator.
+
+[Bilingual Marketplace description](MARKETPLACE.md) · [Publisher instructions](PUBLISHING.md)
+
 ## Current features
 
 | Version | What you can do |
