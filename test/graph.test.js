@@ -36,6 +36,9 @@ test('two instances feeding from the same net expand as separate nodes', () => {
   const leaf = { uri: 'leaf.v', index: indexDocument('module leaf(input d); wire q=d; endmodule') };
   const graph = createGraph(top, lookup(top.index, top.index.source.indexOf('p)')), projectLinks([top, leaf]));
   const pins = graph.nodes.filter(n => n.name === 'd');
+  const hidden = [...graph.candidates().values()].find(n => n.scope === 'top.b' && n.name === 'q');
+  assert.equal(graph.focus(pins[0], hidden).edges.length, 0);
+  assert.equal(graph.focus(pins[1], hidden).edges.length, 1);
   assert.deepEqual(pins.map(n => n.scope), ['top.a', 'top.b']);
   for (const pin of pins) graph.expand(pin.id);
   assert.equal(graph.nodes.filter(n => n.name === 'q').length, 2);
@@ -45,4 +48,20 @@ test('two instances feeding from the same net expand as separate nodes', () => {
   graph.undo();
   assert.equal(graph.nodes.length, 3);
   assert.equal(graph.nodes[0].expanded, true);
+});
+
+test('focus queries two undisplayed signals without changing expansion history', () => {
+  const source = 'module m(input clk, seed, en, output reg q); wire first=seed; always @(posedge clk) begin if(en) q <= seed; q <= en ? seed : q; end endmodule';
+  const file = { uri: 'm.v', index: indexDocument(source) };
+  const graph = createGraph(file, lookup(file.index, source.indexOf('first')), new Map());
+  const signals = [...graph.candidates().values()];
+  const en = signals.find(n => n.name === 'en'), q = signals.find(n => n.name === 'q');
+  const keys = graph.edges.map(e => e.key);
+  assert.deepEqual(graph.nodes.map(n => n.name), ['first', 'seed']);
+  const focus = graph.focus(en, q);
+  assert.deepEqual(focus.edges.map(e => [e.kind, e.token.start]), [
+    ['控制写入', source.indexOf('q <= seed')], ['控制选值', source.indexOf('q <= en')]
+  ]);
+  assert.deepEqual(graph.edges.map(e => e.key), keys);
+  assert.equal(graph.canUndo, false);
 });

@@ -29,3 +29,8 @@ path { fill:none; stroke:var(--vscode-descriptionForeground); stroke-width:1.4; 
 path.control { stroke:var(--vscode-textLink-foreground); stroke-dasharray:4 2; }
 
 .edge-source { display:block; font:11px var(--vscode-editor-font-family); color:var(--vscode-descriptionForeground); overflow-wrap:anywhere; }
+
+dialog { color:var(--vscode-editor-foreground); background:var(--vscode-editor-background); border:1px solid var(--vscode-focusBorder); max-width:90vw; }
+dialog label { display:block; margin-bottom:12px; }
+dialog select { max-width:65vw; background:var(--vscode-dropdown-background); color:var(--vscode-dropdown-foreground); }
+dialog button { padding:5px 9px; border:1px solid var(--vscode-panel-border); }

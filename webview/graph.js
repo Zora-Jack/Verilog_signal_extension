@@ -5,17 +5,26 @@ const layers = document.querySelector('#layers');
 const svg = document.querySelector('#wires');
 let edges = [];
 let graph;
-let pair = api.getState()?.pair;
+let pair = false;
 const undo = document.getElementById('undo');
 const clear = document.getElementById('clear');
-function focusPair(next) {
-  pair = next;
-  api.setState({ pair, revision: graph.revision });
-  render();
-  if (pair) clear.focus();
+const choose = document.getElementById('choose');
+const dialog = document.querySelector('dialog');
+const first = document.getElementById('first');
+const second = document.getElementById('second');
+const apply = document.getElementById('apply');
+function send(action, fields = {}) {
+  api.postMessage({ action, ...fields, revision: graph.revision });
 }
-undo.addEventListener('click', () => api.postMessage({ action: 'undo', revision: graph.revision }));
-clear.addEventListener('click', () => focusPair(undefined));
+choose.addEventListener('click', () => send('choices'));
+dialog.addEventListener('change', () => { apply.disabled = first.value === second.value; });
+dialog.addEventListener('close', () => {
+  if (dialog.returnValue === 'apply' && first.value !== second.value) {
+    send('selectPair', {first: first.value, second: second.value});
+  }
+});
+undo.addEventListener('click', () => send('undo'));
+clear.addEventListener('click', () => send('clear'));
 function element(tag, className, text) {
   const el = document.createElement(tag);
   el.className = className;
@@ -34,11 +43,6 @@ stage.addEventListener('click', event => {
   if (!b) return;
   const action = b.dataset.action === 'expand' && (event.ctrlKey || event.metaKey) ? 'declare' : b.dataset.action;
   const id = Number(b.dataset.id);
-  if (action === 'pair') {
-    const edge = graph.edges.find(e => e.id === id);
-    if (edge) focusPair([edge.from, edge.to]);
-    return;
-  }
   if (pair && action === 'expand') return;
   api.postMessage({ action, id, revision: graph.revision });
 });
@@ -65,23 +69,34 @@ function draw() {
   }
 }
 window.addEventListener('message', ({data}) => {
-  if (api.getState()?.revision !== data.revision) pair = undefined;
+  if (data.choices) {
+    if (data.revision !== graph.revision) return;
+    for (const select of [first, second]) {
+      select.replaceChildren(...data.choices.map(({key, text}) => new Option(text, key)));
+    }
+    first.value = data.origin;
+    second.value = data.choices.find(c => c.key !== first.value)?.key || first.value;
+    apply.disabled = first.value === second.value;
+    dialog.returnValue = 'cancel';
+    if (!dialog.open) dialog.showModal();
+    return;
+  }
+  pair = data.focused;
+  choose.disabled = false;
   graph = data;
   render();
 });
 function render() {
   const {nodes} = graph;
-  edges = pair ? graph.edges.filter(e => (e.from === pair[0] && e.to === pair[1]) ||
-    (e.from === pair[1] && e.to === pair[0])) : graph.edges;
+  edges = graph.edges;
   undo.disabled = !graph.canUndo || Boolean(pair);
   clear.hidden = !pair;
-  document.getElementById('pair').textContent = pair ? pair.map(id => nodes[id].name).join(' ↔ ') : '';
+  document.getElementById('pair').textContent = pair ? nodes.map(n => n.name).join(' ↔ ') + ' · ' + edges.length + ' 条直接关系（按当前支持的 RTL 语法查询）' : '';
   document.querySelector('h1').textContent = nodes[0].name;
   const focus = document.activeElement.dataset;
   layers.replaceChildren();
   const groups = new Map();
   for (const n of nodes) {
-    if (pair && !pair.includes(n.id)) continue;
     if (!groups.has(n.layer)) groups.set(n.layer, element('section', 'layer'));
     const card = element('article', n.id === 0 ? 'origin' : '');
     const node = button('node', n.name, 'expand', n.id, n.scope + '.' + n.name);
