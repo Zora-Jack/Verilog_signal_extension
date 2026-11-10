@@ -190,12 +190,12 @@ function directRelations(index, hit, expandControls = false) {
       if (seen.has(key)) continue;
       seen.add(key);
       if (selector) {
-        if (name.value === signal) results.push({ direction: '选择条件', token: t, detail, edge, writeOffset: name.start });
-        if (t.value === signal) results.push({ direction: '受控选值', token: name, detail, edge, guardOffset: t.start });
+        if (name.value === signal) results.push({ direction: '选择条件', token: t, write: name, detail, edge, writeOffset: name.start });
+        if (t.value === signal) results.push({ direction: '受控选值', token: name, write: name, detail, edge, guardOffset: t.start });
         continue;
       }
-      if (name.value === signal) results.push({ direction: '上游', token: t, detail, edge });
-      if (t.value === signal) results.push({ direction: '下游', token: name, detail, edge });
+      if (name.value === signal) results.push({ direction: '上游', token: t, write: name, detail, edge });
+      if (t.value === signal) results.push({ direction: '下游', token: name, write: name, detail, edge });
     }
     for (const guard of guards) {
       if (!expandControls && name.value === signal) {
@@ -208,8 +208,8 @@ function directRelations(index, hit, expandControls = false) {
         if (guard.operands[i - 1]?.value === '.' || ['.', '('].includes(guard.operands[i + 1]?.value)) continue;
         controls.add(operand.value);
         const evidence = guard.label + ' · ' + detail;
-        if (name.value === signal) results.push({ direction: '控制来源', token: operand, detail: evidence, edge, writeOffset: name.start });
-        if (operand.value === signal) results.push({ direction: '受控写入', token: name, detail: evidence, edge, guardOffset: guard.start });
+        if (name.value === signal) results.push({ direction: '控制来源', token: operand, guard, write: name, detail: evidence, edge, writeOffset: name.start });
+        if (operand.value === signal) results.push({ direction: '受控写入', token: name, guard, write: name, detail: evidence, edge, guardOffset: guard.start });
       }
     }
   }

@@ -1,0 +1,25 @@
+:root { color-scheme: light dark; }
+body { padding:0; margin:0; background:var(--vscode-editor-background); color:var(--vscode-editor-foreground); }
+header { padding:14px 18px; border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border)); display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 18px; }
+h1 { font:600 17px var(--vscode-editor-font-family); margin:0; }
+header span, .scope { color:var(--vscode-descriptionForeground); font-size:12px; }
+main { overflow:auto; height:calc(100vh - 64px); }
+#stage { position:relative; width:max-content; min-width:100%; }
+#layers { position:relative; display:flex; gap:62px; padding:22px 20px; pointer-events:none; }
+.layer { display:flex; flex-direction:column; gap:16px; width:175px; }
+article { pointer-events:auto; background:var(--vscode-sideBar-background,var(--vscode-editor-background)); border:1px solid var(--vscode-panel-border); border-radius:5px; }
+.origin { border-color:var(--vscode-focusBorder); }
+button { cursor:pointer; color:inherit; background:transparent; border:0; font:inherit; }
+button:hover { background:var(--vscode-list-hoverBackground); }
+button:focus-visible { outline:2px solid var(--vscode-focusBorder); }
+.node { display:block; width:100%; text-align:left; font:600 14px var(--vscode-editor-font-family); padding:8px; overflow-wrap:anywhere; }
+.node[data-expanded=false]::after { content:' +'; color:var(--vscode-textLink-foreground); }
+.scope { display:block; font-weight:400; margin-bottom:3px; }
+.relation { display:flex; border-top:1px dotted var(--vscode-panel-border); }
+.edge,.guard { font-size:12px; color:var(--vscode-textLink-foreground); padding:4px 8px; }
+.edge { text-align:left; flex:1; }
+#wires { position:absolute; inset:0; pointer-events:none; }
+path { fill:none; stroke:var(--vscode-descriptionForeground); stroke-width:1.4; }
+path.control { stroke:var(--vscode-textLink-foreground); stroke-dasharray:4 2; }
+
+.edge-source { display:block; font:11px var(--vscode-editor-font-family); color:var(--vscode-descriptionForeground); overflow-wrap:anywhere; }

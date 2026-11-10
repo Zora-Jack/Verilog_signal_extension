@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const { projectLinks, portSteps } = require('./project');
+const { showGraph } = require('./graph-panel');
 const { indexDocument, lookup, directRelations } = require('./signals');
 
 // Keep a single picker open as the editor selection moves from one hop to the next.
@@ -167,6 +168,21 @@ function activate(context) {
     }
   }
   context.subscriptions.push(
+    vscode.commands.registerCommand('verilog-signal-trace.graph', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      const doc = editor.document;
+      const hit = resolve(doc, editor.selection.start);
+      if (!hit) return void vscode.window.showInformationMessage('请将光标放在已声明的信号上。');
+      const file = { uri: doc.uri, index: getIndex(doc) };
+      let links = new Map();
+      try {
+        links = await loadProject(doc, file);
+      } catch (error) {
+        void vscode.window.showWarningMessage('无法建立端口索引，将绘制模块内关系。' + error.message);
+      }
+      showGraph(context, editor, file, hit, links);
+    }),
     vscode.commands.registerCommand('verilog-signal-trace.directRelations', () => trace(false)),
     vscode.commands.registerCommand('verilog-signal-trace.tracePath', () => trace(true)),
     vscode.languages.registerHoverProvider(languages, {

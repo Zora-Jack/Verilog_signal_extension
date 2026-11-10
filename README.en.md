@@ -14,6 +14,7 @@ Verilog Signal Trace is a VS Code extension for reading RTL. It grew out of thre
 | `v0.4.0` | Inspect data sources and enclosing `if/else` and `case/casez/casex` branches separately. Each guard identifies its write site and jumps to the predicate or branch label. |
 | `v0.5.0` | Follow data and control dependencies across multiple steps within a module and return to previous source locations. |
 | `v0.6.0` | Follow named port connections across files and instances while preserving the instance context and previous source locations. |
+| `v0.7.0` | Draw a graph of direct relationships, expand individual signals, and navigate to declarations, writes, and guards. |
 
 The extension reads the current editor buffer and traces continuous assignments such as `wire x = expr;` and `assign x = expr;`. An empty list means it found no dependencies in the constructs it supports. Clocked tracing accepts rising and falling edges on simple signals, including edge lists. Macro expansion and `generate` constructs are outside the current scope.
 
@@ -41,6 +42,8 @@ Right-click `data_sram_req` and select **Verilog：多级追踪信号**. Follow 
 Open the extension folder in VS Code 1.85 or later and press `F5` to launch the Extension Development Host. Open a Verilog project in that window and place the cursor on a signal to try hover, Go to Definition, and the context menu command. If you have a local VSIX package, you can also install it with **Extensions: Install from VSIX...**.
 
 [signals.js](signals.js) indexes source text and resolves dependencies. [extension.js](extension.js) provides hover information, navigation, and the results list. Write Git commit subjects and bodies in English.
+
+Right-click a signal and choose **Verilog：绘制上下游关系图**. Click a node to expand it, Ctrl+click to jump to its declaration, or click an edge label to show the assignment or port binding. The **条件** button jumps to the guard. In exp15, the two edges from `take_load` to `load_state` lead to the guarded write on line 153 (guard on line 152) and the value selection on line 165.
 
 ## Cross-file tracing
 
