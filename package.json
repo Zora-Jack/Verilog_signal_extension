@@ -3,7 +3,7 @@
   "displayName": "Verilog Signal Trace",
   "description": "Trace Verilog and SystemVerilog signals through assignments, write conditions, and named ports. Explore dependencies in an interactive graph.",
   "version": "0.8.2",
-  "publisher": "local-rtl",
+  "publisher": "ZoraJack",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
   "keywords": ["Verilog", "SystemVerilog", "RTL", "FPGA", "signal tracing"],

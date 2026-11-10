@@ -2,7 +2,7 @@
 
 商店页面使用中英双语的 [MARKETPLACE.md](MARKETPLACE.md)。发布包的文件清单由 package.json 中的 files 指定。仓库 README 和 GitHub Release 可独立维护。
 
-1. 在 [发布者管理页面](https://marketplace.visualstudio.com/manage) 登录 Microsoft 账号，核对自己有权使用的 Publisher ID。它必须与 package.json 的 publisher 一致。当前本地扩展沿用 local-rtl；更换发布者会改变扩展 ID，安装过旧 VSIX 的用户需另行安装新 ID。
+1. 在 [发布者管理页面](https://marketplace.visualstudio.com/manage) 登录 Microsoft 账号，核对自己有权使用的 Publisher ID。它必须与 package.json 的 publisher 一致。本项目的 Publisher ID 为 `ZoraJack`，完整扩展 ID 为 `ZoraJack.verilog-signal-trace`。使用过 `local-rtl` 版的用户应先禁用或卸载旧版，以免两个扩展同时提供相同的命令。
 2. 检查版本号后，在插件目录运行以下命令。项目目前没有单独的许可证文件，打包命令显式保留这个现状。
 
    ```powershell
