@@ -29,18 +29,18 @@ function activate(context) {
       const signal = doc.getText(new vscode.Range(doc.positionAt(hit.start), doc.positionAt(hit.end)));
       const relations = directRelations(getIndex(doc), hit);
       if (!relations.length) {
-        void vscode.window.showInformationMessage(`${signal} 在支持的组合赋值中没有直接上下游。`);
+        void vscode.window.showInformationMessage(`${signal} 在支持的赋值中没有直接上下游。`);
         return;
       }
       const items = [];
       for (const direction of ['上游', '下游']) {
         for (const r of relations.filter(r => r.direction === direction)) {
           const range = new vscode.Range(doc.positionAt(r.token.start), doc.positionAt(r.token.end));
-          items.push({ label: `${direction}  ${r.token.value}`, description: `第 ${range.start.line + 1} 行`, detail: r.detail, range });
+          items.push({ label: `${direction}  ${r.token.value}`, description: `${r.edge || "组合"} · 第 ${range.start.line + 1} 行`, detail: r.detail, range });
         }
       }
       const picked = await vscode.window.showQuickPick(items, {
-        title: `${hit.module} · ${signal} 的直接上下游`, placeHolder: '选择一项，跳到对应的组合赋值'
+        title: `${hit.module} · ${signal} 的直接上下游`, placeHolder: '选择一项，跳到对应的赋值语句'
       });
       if (!picked) return;
       if (doc.isClosed || doc.version !== version) {

@@ -70,23 +70,80 @@ function readAssign(tokens, start, mod) {
   }
 }
 
+// Visit statement heads only: "<=" inside a condition or an RHS is a comparison.
+function readClockedBlock(source, tokens, start, mod) {
+  const at = i => tokens[i]?.value;
+  if (at(start) !== '@' || at(start + 1) !== '(') return;
+  const body = balancedEnd(tokens, start + 1);
+  const events = tokens.slice(start + 2, body - 1).map(t => t.value).join(' ');
+  if (!/^(?:posedge|negedge) [\w$]+(?: (?:or|,) (?:posedge|negedge) [\w$]+)*$/.test(events)) return;
+  const edge = source.slice(tokens[start].start, tokens[body - 1].end).replace(/\s+/g, ' ');
+
+  function statement(i) {
+    const head = at(i);
+    if (head === 'begin') {
+      i += at(i + 1) === ':' ? 3 : 1;
+      while (at(i) && at(i) !== 'end' && at(i) !== 'endmodule') i = statement(i);
+      return i + (at(i + 1) === ':' ? 3 : 1);
+    }
+    if (['unique', 'unique0', 'priority'].includes(head)) return statement(i + 1);
+    if (['if', 'for', 'while', 'repeat'].includes(head) && at(i + 1) === '(') {
+      i = statement(balancedEnd(tokens, i + 1));
+      return head === 'if' && at(i) === 'else' ? statement(i + 1) : i;
+    }
+    if (['case', 'casez', 'casex'].includes(head) && at(i + 1) === '(') {
+      i = balancedEnd(tokens, i + 1);
+      while (at(i) && at(i) !== 'endcase' && at(i) !== 'endmodule') {
+        if (at(i) === 'default') {
+          i++;
+        } else {
+          while (at(i) && ![':', 'endcase', 'endmodule'].includes(at(i))) {
+            i = Object.hasOwn(paired, at(i)) ? balancedEnd(tokens, i) : i + 1;
+          }
+        }
+        if (at(i) === 'endcase' || at(i) === 'endmodule') break;
+        i = statement(at(i) === ':' ? i + 1 : i);
+      }
+      return i + 1;
+    }
+    let op = i + 1;
+    while (at(op) === '[') op = balancedEnd(tokens, op);
+    const rhs = op + 2;
+    let end = i;
+    while (at(end) && ![';', 'end', 'endcase', 'endmodule'].includes(at(end))) {
+      end = Object.hasOwn(paired, at(end)) ? balancedEnd(tokens, end) : end + 1;
+    }
+    if (identifier.test(head || '') && at(op) === '<' && at(op + 1) === '=' &&
+        tokens[op].end === tokens[op + 1].start && rhs < end && at(end) === ';' &&
+        !['#', '@'].includes(at(rhs))) {
+      mod.assignments.push({ name: tokens[i], rhs, end, edge });
+    }
+    return end + 1;
+  }
+  statement(body);
+}
+
 function directRelations(index, hit) {
   const mod = index.modules.find(m => m.start <= hit.start && hit.start < m.end);
   const tokens = index.tokens;
   const signal = index.source.slice(hit.start, hit.end);
   const results = [];
   if (mod?.signals.get(signal) !== hit.declaration) return results;
-  for (const { name, rhs, end } of mod.assignments) {
-    if (!mod.signals.has(name.value)) continue;
+  function moduleSignal(t) {
+    return mod.signals.has(t.value) && !mod.scopes.some(s =>
+      s.start <= t.start && t.start < s.end && s.signals.has(t.value));
+  }
+  for (const { name, rhs, end, edge } of mod.assignments) {
+    if (!moduleSignal(name)) continue;
     const seen = new Set();
     for (let i = rhs; i < end; i++) {
       const t = tokens[i];
-      if (!mod.signals.has(t.value) || seen.has(t.value)) continue;
+      if (!moduleSignal(t) || seen.has(t.value)) continue;
       if (tokens[i - 1]?.value === '.' || ['.', '('].includes(tokens[i + 1]?.value)) continue;
       seen.add(t.value);
       const detail = index.source.slice(name.start, tokens[end - 1].end).replace(/\s+/g, ' ');
-      if (name.value === signal) results.push({ direction: '上游', token: t, detail });
-      if (t.value === signal) results.push({ direction: '下游', token: name, detail });
+      if (name.value === signal) results.push({ direction: '上游', token: t, detail, edge });
+      if (t.value === signal) results.push({ direction: '下游', token: name, detail, edge });
     }
   }
   return results;
@@ -130,6 +187,8 @@ function indexDocument(source) {
       } else if (t.value === 'end') {
         const scope = blocks.pop();
         if (scope) scope.end = t.end;
+      } else if (!blocks.length && ['always', 'always_ff'].includes(t.value)) {
+        readClockedBlock(source, tokens, i + 1, mod);
       } else if (!blocks.length && t.value === 'assign') {
         readAssign(tokens, i + 1, mod);
       } else if (directions.has(t.value) || types.has(t.value)) {
