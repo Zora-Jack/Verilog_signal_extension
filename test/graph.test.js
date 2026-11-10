@@ -19,6 +19,16 @@ test('write and selector edges remain distinct and are reused on reverse expansi
   assert.equal(edges().length, 2);
   assert.equal(graph.nodes.filter(n => n.name === 'q').length, 1);
   assert.ok(graph.edges.some(e => e.from === q.id && e.to === q.id));
+  assert.equal(graph.canUndo, true);
+  const expandedKeys = graph.edges.map(e => e.key);
+  graph.undo();
+  assert.equal(graph.canUndo, false);
+  assert.equal(q.expanded, false);
+  assert.equal(graph.nodes.length, 2);
+  assert.equal(graph.edges.length, 2);
+  graph.undo();
+  graph.expand(q.id);
+  assert.deepEqual(graph.edges.map(e => e.key), expandedKeys);
 });
 
 test('two instances feeding from the same net expand as separate nodes', () => {
@@ -30,4 +40,9 @@ test('two instances feeding from the same net expand as separate nodes', () => {
   for (const pin of pins) graph.expand(pin.id);
   assert.equal(graph.nodes.filter(n => n.name === 'q').length, 2);
   assert.equal(graph.edges.filter(e => e.kind === '端口').length, 2);
+  graph.undo();
+  assert.deepEqual(graph.nodes.filter(n => n.name === 'q').map(n => n.scope), ['top.a']);
+  graph.undo();
+  assert.equal(graph.nodes.length, 3);
+  assert.equal(graph.nodes[0].expanded, true);
 });

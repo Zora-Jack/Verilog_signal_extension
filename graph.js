@@ -9,6 +9,7 @@ const types = {
 
 function createGraph(file, origin, links) {
   const nodes = [], edges = [];
+  const history = [];
   const nodeIds = new Map(), edgeIds = new Set();
   function node(file, hit, route, layer) {
     const key = JSON.stringify([String(file.uri), hit.declaration.offset,
@@ -16,7 +17,7 @@ function createGraph(file, origin, links) {
     if (nodeIds.has(key)) return nodes[nodeIds.get(key)];
     const id = nodes.length;
     const scope = route.reduce((path, s) => s.down ? path + '.' + s.site.name : s.site.parent, origin.module);
-    const n = { id, file, hit, route, scope, layer, expanded: false,
+    const n = { id, key, file, hit, route, scope, layer, expanded: false,
       name: file.index.source.slice(hit.start, hit.end) };
     nodeIds.set(key, id);
     nodes.push(n);
@@ -26,12 +27,13 @@ function createGraph(file, origin, links) {
     const key = JSON.stringify([from.id, to.id, kind, String(owner.uri), token.start, guard?.start]);
     if (edgeIds.has(key)) return;
     edgeIds.add(key);
-    edges.push({ id: edges.length, from: from.id, to: to.id, kind, owner, token, guard, detail,
+    edges.push({ id: edges.length, key, from: from.id, to: to.id, kind, owner, token, guard, detail,
       line: owner.index.source.slice(0, token.start).split('\n').length });
   }
   function expand(id) {
     const n = nodes[id];
     if (!n || n.expanded) return;
+    if (id !== 0) history.push({ node: n, nodeCount: nodes.length, edgeCount: edges.length });
     n.expanded = true;
     for (const r of directRelations(n.file.index, n.hit, true)) {
       const [kind, incoming] = types[r.direction];
@@ -49,9 +51,16 @@ function createGraph(file, origin, links) {
         step.owner, step.binding, undefined, step.site.parent + '.' + step.site.name);
     }
   }
+  function undo() {
+    const last = history.pop();
+    if (!last) return;
+    for (const e of edges.splice(last.edgeCount)) edgeIds.delete(e.key);
+    for (const n of nodes.splice(last.nodeCount)) nodeIds.delete(n.key);
+    last.node.expanded = false;
+  }
   node(file, origin, [], 0);
   expand(0);
-  return { nodes, edges, expand };
+  return { nodes, edges, expand, undo, get canUndo() { return history.length > 0; } };
 }
 
 module.exports = { createGraph };

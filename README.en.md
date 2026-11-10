@@ -15,6 +15,7 @@ Verilog Signal Trace is a VS Code extension for reading RTL. It grew out of thre
 | `v0.5.0` | Follow data and control dependencies across multiple steps within a module and return to previous source locations. |
 | `v0.6.0` | Follow named port connections across files and instances while preserving the instance context and previous source locations. |
 | `v0.7.0` | Draw a graph of direct relationships, expand individual signals, and navigate to declarations, writes, and guards. |
+| `v0.8.0` | **撤销展开** undoes the last node expansion. Click **聚焦** on a relationship to isolate its two endpoints and all direct edges between them. Edge navigation stays active. **清除聚焦** restores the previous graph. |
 
 The extension reads the current editor buffer and traces continuous assignments such as `wire x = expr;` and `assign x = expr;`. An empty list means it found no dependencies in the constructs it supports. Clocked tracing accepts rising and falling edges on simple signals, including edge lists. Macro expansion and `generate` constructs are outside the current scope.
 

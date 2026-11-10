@@ -10,9 +10,11 @@ function showGraph(context, editor, file, hit, links) {
     vscode.ViewColumn.Beside, { enableScripts: true, localResourceRoots: [assets] });
   const view = panel.webview;
   const nonce = randomBytes(18).toString('base64');
+  let revision = 0;
   const asset = name => view.asWebviewUri(vscode.Uri.joinPath(assets, name));
   function render() {
     return view.postMessage({
+      revision, canUndo: graph.canUndo,
       nodes: graph.nodes.map(({ id, name, scope, layer, expanded }) => ({ id, name, scope, layer, expanded })),
       edges: graph.edges.map(({ id, from, to, kind, line, detail, guard }) =>
         ({ id, from, to, kind, line, detail, hasGuard: Boolean(guard) }))
@@ -31,13 +33,19 @@ function showGraph(context, editor, file, hit, links) {
   const subscription = view.onDidReceiveMessage(async msg => {
     try {
       if (msg?.action === 'ready') return await render();
+      if (msg?.revision !== revision) return await render();
+      if (msg.action === 'undo') {
+        if (graph.canUndo) { graph.undo(); revision++; }
+        return await render();
+      }
       if (!Number.isSafeInteger(msg?.id) || msg.id < 0) return;
       if (msg.action === 'expand' || msg.action === 'declare') {
         const n = graph.nodes[msg.id];
         if (!n) return;
         if (msg.action === 'declare') return await jump(n.file, n.hit.declaration.offset, n.hit.declaration.offset + n.name.length);
-        if (await documentFor(n.file)) {
+        if (await documentFor(n.file) && msg.revision === revision && !n.expanded) {
           graph.expand(n.id);
+          revision++;
           await render();
         }
       } else if (msg.action === 'edge' || msg.action === 'guard') {
@@ -54,6 +62,7 @@ function showGraph(context, editor, file, hit, links) {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${view.cspSource};">
 <meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="${asset('graph.css')}"></head>
 <body><header><h1></h1><span>单击展开 · Ctrl+单击查看声明 · 点击关系跳转</span></header>
+<nav aria-label="关系图操作"><button id="undo" disabled>撤销展开</button><button id="clear" hidden>清除聚焦</button><span id="pair" role="status"></span></nav>
 <main><div id="stage"><svg id="wires" aria-hidden="true"></svg><div id="layers"></div></div></main>
 <script nonce="${nonce}" src="${asset('graph.js')}"></script></body></html>`;
 }

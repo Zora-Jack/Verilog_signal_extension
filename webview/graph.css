@@ -3,7 +3,13 @@ body { padding:0; margin:0; background:var(--vscode-editor-background); color:va
 header { padding:14px 18px; border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border)); display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 18px; }
 h1 { font:600 17px var(--vscode-editor-font-family); margin:0; }
 header span, .scope { color:var(--vscode-descriptionForeground); font-size:12px; }
-main { overflow:auto; height:calc(100vh - 64px); }
+body { display:flex; flex-direction:column; height:100vh; }
+main { overflow:auto; flex:1; min-height:0; }
+nav { padding:5px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; border-bottom:1px solid var(--vscode-panel-border); }
+nav button { padding:4px 8px; border:1px solid var(--vscode-panel-border); }
+button:disabled { opacity:.5; cursor:default; }
+#pair { font-family:var(--vscode-editor-font-family); }
+.pair { font-size:12px; padding:4px; color:var(--vscode-textLink-foreground); }
 #stage { position:relative; width:max-content; min-width:100%; }
 #layers { position:relative; display:flex; gap:62px; padding:22px 20px; pointer-events:none; }
 .layer { display:flex; flex-direction:column; gap:16px; width:175px; }
