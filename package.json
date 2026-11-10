@@ -1,13 +1,21 @@
 {
   "name": "verilog-signal-trace",
   "displayName": "Verilog Signal Trace",
-  "description": "查看和定位当前 Verilog 模块中的信号声明。",
-  "version": "0.1.0",
+  "description": "定位信号声明，追踪模块内组合赋值的直接上下游。",
+  "version": "0.2.0",
   "publisher": "local-rtl",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
   "main": "./extension.js",
   "contributes": {
+    "commands": [
+      { "command": "verilog-signal-trace.directRelations", "title": "Verilog：查看直接上下游", "enablement": "editorLangId == verilog || editorLangId == systemverilog" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "verilog-signal-trace.directRelations", "when": "editorLangId == verilog || editorLangId == systemverilog", "group": "navigation@5" }
+      ]
+    },
     "languages": [
       { "id": "verilog", "extensions": [".v", ".vh"] },
       { "id": "systemverilog", "extensions": [".sv", ".svh"] }

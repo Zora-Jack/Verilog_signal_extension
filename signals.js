@@ -16,6 +16,13 @@ function balancedEnd(tokens, i) {
   return tokens.length;
 }
 
+function expressionEnd(tokens, i) {
+  while (i < tokens.length && ![',', ';', ')', 'endmodule'].includes(tokens[i].value)) {
+    i = Object.hasOwn(paired, tokens[i].value) ? balancedEnd(tokens, i) : i + 1;
+  }
+  return i;
+}
+
 function readDeclaration(source, tokens, start, mod) {
   let i = start;
   const value = () => tokens[i]?.value;
@@ -24,14 +31,14 @@ function readDeclaration(source, tokens, start, mod) {
   while (types.has(value()) || modifiers.has(value())) i++;
   while (value() === '[') i = balancedEnd(tokens, i);
   const prefix = source.slice(tokens[start].start, tokens[i - 1].end).trim();
+  const net = tokens.slice(start, i).some(t => t.value === 'wire' || t.value === 'tri');
   while (i < tokens.length && identifier.test(value()) && !directions.has(value()) && !types.has(value())) {
     const name = tokens[i++];
     while (value() === '[') i = balancedEnd(tokens, i);
     if (value() === '=') {
-      i++;
-      while (i < tokens.length && ![',', ';', ')', 'endmodule'].includes(value())) {
-        i = Object.hasOwn(paired, value()) ? balancedEnd(tokens, i) : i + 1;
-      }
+      const rhs = ++i;
+      i = expressionEnd(tokens, rhs);
+      if (net && mod.assignments && [',', ';'].includes(value())) mod.assignments.push({ name, rhs, end: i });
     }
     if (![',', ';', ')'].includes(value())) break;
     const body = source.slice(name.start, tokens[i - 1].end);
@@ -46,6 +53,43 @@ function readDeclaration(source, tokens, start, mod) {
     i++;
   }
   return i;
+}
+
+// Each result points into the assignment itself, so separate drivers remain distinguishable.
+function readAssign(tokens, start, mod) {
+  let i = start;
+  while (identifier.test(tokens[i]?.value || '')) {
+    const name = tokens[i++];
+    while (tokens[i]?.value === '[') i = balancedEnd(tokens, i);
+    if (tokens[i]?.value !== '=') return;
+    const rhs = ++i;
+    i = expressionEnd(tokens, rhs);
+    if (![',', ';'].includes(tokens[i]?.value)) return;
+    mod.assignments.push({ name, rhs, end: i });
+    if (tokens[i++].value !== ',') return;
+  }
+}
+
+function directRelations(index, hit) {
+  const mod = index.modules.find(m => m.start <= hit.start && hit.start < m.end);
+  const tokens = index.tokens;
+  const signal = index.source.slice(hit.start, hit.end);
+  const results = [];
+  if (mod?.signals.get(signal) !== hit.declaration) return results;
+  for (const { name, rhs, end } of mod.assignments) {
+    if (!mod.signals.has(name.value)) continue;
+    const seen = new Set();
+    for (let i = rhs; i < end; i++) {
+      const t = tokens[i];
+      if (!mod.signals.has(t.value) || seen.has(t.value)) continue;
+      if (tokens[i - 1]?.value === '.' || ['.', '('].includes(tokens[i + 1]?.value)) continue;
+      seen.add(t.value);
+      const detail = index.source.slice(name.start, tokens[end - 1].end).replace(/\s+/g, ' ');
+      if (name.value === signal) results.push({ direction: '上游', token: t, detail });
+      if (t.value === signal) results.push({ direction: '下游', token: name, detail });
+    }
+  }
+  return results;
 }
 
 function indexDocument(source) {
@@ -63,7 +107,7 @@ function indexDocument(source) {
     const t = tokens[i];
     if (t.value === 'module') {
       const nameIndex = ['automatic', 'static'].includes(tokens[i + 1]?.value) ? i + 2 : i + 1;
-      mod = { name: tokens[nameIndex]?.value, start: t.start, end: source.length, signals: new Map(), excluded: [], scopes: [] };
+      mod = { name: tokens[nameIndex]?.value, start: t.start, end: source.length, signals: new Map(), excluded: [], scopes: [], assignments: [] };
       modules.push(mod);
       blocks = [];
       skipUntil = undefined;
@@ -86,12 +130,14 @@ function indexDocument(source) {
       } else if (t.value === 'end') {
         const scope = blocks.pop();
         if (scope) scope.end = t.end;
+      } else if (!blocks.length && t.value === 'assign') {
+        readAssign(tokens, i + 1, mod);
       } else if (directions.has(t.value) || types.has(t.value)) {
         i = Math.max(i, readDeclaration(source, tokens, i, blocks.at(-1) || mod) - 1);
       }
     }
   }
-  return { modules, tokens };
+  return { source, modules, tokens };
 }
 
 function lookup({ modules, tokens }, offset) {
@@ -110,4 +156,4 @@ function lookup({ modules, tokens }, offset) {
   if (declaration) return { module: mod.name, declaration, start: t.start, end: t.end };
 }
 
-module.exports = { indexDocument, lookup };
+module.exports = { indexDocument, lookup, directRelations };
