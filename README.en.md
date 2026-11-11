@@ -58,3 +58,7 @@ Right-click a signal and choose **Verilog：绘制上下游关系图**. Click a 
 Open the RTL folder for one design, such as the exp15 `myCPU` directory. Follow `inst_rdata_reg` to `inst_sram_rdata`, go up through `mycpu_top.u_bridge`, then descend into `u_mycpu_core` and `u_if_stage`. Starting inside a module lists its possible parent instances. After entering a particular instance, upward navigation follows that instance.
 
 Each multi-hop session scans .v, .vh, .sv and .svh files in the current workspace folder and uses the current text of open documents. Direct module instances with explicit named connections of the form `.port(signal)` support input, output and inout directions. Duplicate module definitions, positional connections, expressions, bit selects, generate constructs and macro expansion are outside this release.
+
+## Contributors
+
+Zora Jack defined the tracing workflow and feature scope, tested the extension on a CPU lab project, and reported issues. OpenAI Codex contributed as an AI coding assistant to the RTL dependency analysis, cross-instance navigation, and interactive graph, and helped write and run regression tests.

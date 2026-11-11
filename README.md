@@ -58,3 +58,7 @@ wire take_data = data_sram_req && data_sram_addr_ok;
 将单个设计的 RTL 目录作为工作区打开，例如 exp15 的 `myCPU`。从桥的 `inst_rdata_reg` 追到 `inst_sram_rdata`，选择 `mycpu_top.u_bridge` 返回顶层，再进入 `u_mycpu_core` 和 `u_if_stage`。在子模块源码中直接开始时，各父实例分别列出；从指定实例进入后，向上只返回该实例。
 
 每次启动多级追踪会扫描当前工作区文件夹的 .v、.vh、.sv 和 .svh 文件，采用已打开文件的当前文本。支持直接模块实例的显式命名连接 `.port(signal)`，按 input、output、inout 标记方向。重名模块定义、位置连接、表达式、位选、generate 和宏展开暂未覆盖。
+
+## 贡献者
+
+Zora Jack 提出信号追踪需求，确定功能范围，并在 CPU 实验工程中试用扩展、反馈问题。OpenAI Codex 作为 AI 编程助手参与实现 RTL 依赖分析、跨实例追踪和交互关系图，并编写和运行回归测试。
