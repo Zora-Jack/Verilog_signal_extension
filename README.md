@@ -49,8 +49,6 @@ wire take_data = data_sram_req && data_sram_addr_ok;
 
 ## 运行与开发
 
-维护版本时可参照[发布流程](PUBLISHING.md)同步 Marketplace 和 GitHub Release。
-
 使用 VS Code 1.85 或更高版本打开插件目录，按 `F5` 启动扩展开发宿主。在新窗口中打开 Verilog 工程，将光标放在信号名上即可测试悬停、定义跳转和右键命令。已有本地 VSIX 安装包时，也可以通过 **Extensions: Install from VSIX...** 安装。
 
 源码索引与依赖查询位于 [signals.js](signals.js)，VS Code 的悬停、跳转和结果列表位于 [extension.js](extension.js)。Git 提交的标题和正文使用英文。

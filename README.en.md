@@ -49,8 +49,6 @@ Right-click `data_sram_req` and select **Verilog：多级追踪信号**. Follow 
 
 ## Run and develop
 
-For maintainers, the [release procedure](PUBLISHING.md) covers publishing the same VSIX to the Marketplace and GitHub Releases.
-
 Open the extension folder in VS Code 1.85 or later and press `F5` to launch the Extension Development Host. Open a Verilog project in that window and place the cursor on a signal to try hover, Go to Definition, and the context menu command. If you have a local VSIX package, you can also install it with **Extensions: Install from VSIX...**.
 
 [signals.js](signals.js) indexes source text and resolves dependencies. [extension.js](extension.js) provides hover information, navigation, and the results list. Write Git commit subjects and bodies in English.
