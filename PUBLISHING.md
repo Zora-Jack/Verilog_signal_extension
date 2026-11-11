@@ -1,21 +1,21 @@
-# 发布到 Visual Studio Marketplace
+# 维护者发布流程
 
-商店页面使用中英双语的 [MARKETPLACE.md](MARKETPLACE.md)。发布包的文件清单由 package.json 中的 files 指定。仓库 README 和 GitHub Release 可独立维护。
+Verilog Signal Trace 的正式扩展 ID 是 `ZoraJack.verilog-signal-trace`。发布新版本时，用同一个 VSIX 更新 Marketplace 和 GitHub Release，方便用户通过任一渠道安装相同版本。
 
-1. 在 [发布者管理页面](https://marketplace.visualstudio.com/manage) 登录 Microsoft 账号，核对自己有权使用的 Publisher ID。它必须与 package.json 的 publisher 一致。本项目的 Publisher ID 为 `ZoraJack`，完整扩展 ID 为 `ZoraJack.verilog-signal-trace`。使用过 `local-rtl` 版的用户应先禁用或卸载旧版，以免两个扩展同时提供相同的命令。
-2. 检查版本号后，在插件目录运行以下命令。项目目前没有单独的许可证文件，打包命令显式保留这个现状。
+1. 在准备发布的提交中核对 `package.json` 的版本号、发布者和文件清单，更新[商店介绍](MARKETPLACE.md)。从干净的工作区测试并打包：
 
    ```powershell
+   $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+   $package = "verilog-signal-trace-$version.vsix"
    node --test test/*.test.js
-   npx --yes --package @vscode/vsce@4.1.0 vsce package --no-dependencies --readme-path MARKETPLACE.md --skip-license --out verilog-signal-trace-0.8.2.vsix
+   if ($LASTEXITCODE) { throw 'Tests failed' }
+   npx --yes --package @vscode/vsce@4.1.0 vsce package --no-dependencies --readme-path MARKETPLACE.md --skip-license --out $package
+   if ($LASTEXITCODE) { throw 'Packaging failed' }
+   Get-FileHash $package -Algorithm SHA256
    ```
 
-3. 在发布者管理页面选择该发布者，通过 **New extension → Visual Studio Code** 上传生成的 VSIX。以后更新已有条目时，选择该扩展的更新版本操作。也可以在本机完成 CLI 身份验证后运行以下命令。
+   当前项目尚无单独的许可证文件，打包时使用 `--skip-license`。保留这个安装包供两个渠道上传。
 
-   ```powershell
-   npx --yes --package @vscode/vsce@4.1.0 vsce publish --packagePath verilog-signal-trace-0.8.2.vsix
-   ```
-
-4. 等待 Marketplace 完成验证，再从扩展页核对发布者、版本号和双语说明，并在 VS Code 扩展视图里验证安装。
-
-仓库可维持私有。商店介绍全文包含在 VSIX 中。具体身份验证方法见 [微软发布指南](https://code.visualstudio.com/api/working-with-extensions/publishing-extension)。
+2. 在 [Marketplace 发布者管理页](https://marketplace.visualstudio.com/manage) 选中已有扩展，上传新版本。验证通过后，在[商店页](https://marketplace.visualstudio.com/items?itemName=ZoraJack.verilog-signal-trace)核对版本号。
+3. 给实际用于打包的提交打 `v<版本号>` 标签并推送。在 GitHub 针对该标签创建 Release，将同一个 VSIX 上传为附件并发布。[查看 Releases](https://github.com/Zora-Jack/Verilog_signal_extension/releases)
+4. 以未登录用户身份打开 Release，下载安装包并核对 SHA-256。VSIX 由 Git 忽略，源码和发布附件分别存放在提交和 Release 中。

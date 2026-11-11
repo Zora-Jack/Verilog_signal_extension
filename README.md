@@ -10,7 +10,7 @@ Verilog Signal Trace 是一个用于阅读 RTL 源码的 VS Code 扩展。开发
 
 使用 VS Code 1.85 或更新版本。已经取得 VSIX 时，在命令面板运行 **Extensions: Install from VSIX...** 并选择安装包。打开单个设计的 RTL 文件夹，在一个已声明的信号上右键选择 **Verilog：查看直接上下游**。扩展直接读取当前文本，无需安装 Ctags 或仿真器。
 
-[中英双语商店介绍](MARKETPLACE.md) · [维护者发布说明](PUBLISHING.md)
+[中英双语商店介绍](MARKETPLACE.md) · [下载最新 VSIX](https://github.com/Zora-Jack/Verilog_signal_extension/releases/latest)
 
 ## 当前进度
 
@@ -48,6 +48,8 @@ wire take_data = data_sram_req && data_sram_addr_ok;
 选中 `data_sram_req`，右键 **Verilog：多级追踪信号**。依次选择下游数据 `take_data`、`take_load`，再选第 153 行的受控写入 `load_state`。其条件位于第 152 行；第 165 行的同名目标是三元表达式的受控选值。选择“返回上一步”恢复上一个源码位置。路径中已经出现过的信号可以定位，继续展开会在该处停止。
 
 ## 运行与开发
+
+维护版本时可参照[发布流程](PUBLISHING.md)同步 Marketplace 和 GitHub Release。
 
 使用 VS Code 1.85 或更高版本打开插件目录，按 `F5` 启动扩展开发宿主。在新窗口中打开 Verilog 工程，将光标放在信号名上即可测试悬停、定义跳转和右键命令。已有本地 VSIX 安装包时，也可以通过 **Extensions: Install from VSIX...** 安装。
 

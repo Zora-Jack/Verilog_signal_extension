@@ -10,7 +10,7 @@ Verilog Signal Trace is a VS Code extension for reading RTL. It grew out of thre
 
 Use VS Code 1.85 or later. To install a downloaded VSIX, run **Extensions: Install from VSIX...** in the Command Palette. Open the RTL folder for one design, right-click a declared signal, and select **Verilog：查看直接上下游** to see its immediate dependencies. The extension reads source text directly and requires no Ctags or simulator.
 
-[Bilingual Marketplace description](MARKETPLACE.md) · [Publisher instructions](PUBLISHING.md)
+[Bilingual Marketplace description](MARKETPLACE.md) · [Download the latest VSIX](https://github.com/Zora-Jack/Verilog_signal_extension/releases/latest)
 
 ## Current features
 
@@ -48,6 +48,8 @@ Select `take_data` and run **Verilog：查看直接上下游**. All five results
 Right-click `data_sram_req` and select **Verilog：多级追踪信号**. Follow the downstream data links to `take_data` and `take_load`, then select the guarded write to `load_state` on line 153. Its guard is on line 152. The separate result on line 165 uses `take_load` to select a value in a ternary expression. Choose **返回上一步** to restore the previous source location. A signal already on the path can be visited once more, where expansion stops.
 
 ## Run and develop
+
+For maintainers, the [release procedure](PUBLISHING.md) covers publishing the same VSIX to the Marketplace and GitHub Releases.
 
 Open the extension folder in VS Code 1.85 or later and press `F5` to launch the Extension Development Host. Open a Verilog project in that window and place the cursor on a signal to try hover, Go to Definition, and the context menu command. If you have a local VSIX package, you can also install it with **Extensions: Install from VSIX...**.
 
